@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
+import { Title } from '@angular/platform-browser';
 
 import { ProjectSettings } from './project-settings';
 
@@ -39,10 +40,11 @@ describe('ProjectSettings', () => {
 
   it('enables Create project only when both fields are filled and navigates on submit', () => {
     const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+    const setTitle = spyOn(TestBed.inject(Title), 'setTitle');
     const button = fixture.nativeElement.querySelector('button[type="submit"]') as HTMLButtonElement;
     expect(button.disabled).toBeTrue();
 
-    component.projectName.set('My project');
+    component.projectName.set('  My project  ');
     fixture.detectChanges();
     expect(button.disabled).toBeTrue();
 
@@ -52,10 +54,12 @@ describe('ProjectSettings', () => {
     button.click();
 
     expect(navigate).toHaveBeenCalledOnceWith(['/map-view']);
+    expect(setTitle).toHaveBeenCalledOnceWith('My project');
   });
 
   it('does not navigate when a field is empty or contains only whitespace', () => {
     const navigate = spyOn(TestBed.inject(Router), 'navigate');
+    const setTitle = spyOn(TestBed.inject(Title), 'setTitle');
 
     for (const [name, folder] of [['', 'F:\\projects'], ['  ', 'F:\\projects'], ['My project', ''], ['My project', '  ']]) {
       component.projectName.set(name);
@@ -64,6 +68,7 @@ describe('ProjectSettings', () => {
     }
 
     expect(navigate).not.toHaveBeenCalled();
+    expect(setTitle).not.toHaveBeenCalled();
   });
 
   it('updates the project name signal from the input', () => {
