@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { Title } from '@angular/platform-browser';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -12,6 +13,7 @@ import { MatInputModule } from '@angular/material/input';
 })
 export class ProjectSettings {
   private readonly router = inject(Router);
+  private readonly title = inject(Title);
   readonly projectName = signal('');
   readonly projectFolder = signal('');
   readonly canCreateProject = computed(() =>
@@ -23,6 +25,7 @@ export class ProjectSettings {
 
   createProject(): void {
     if (this.canCreateProject()) {
+      this.title.setTitle(this.projectName().trim());
       void this.router.navigate(['/map-view']);
     }
   }
