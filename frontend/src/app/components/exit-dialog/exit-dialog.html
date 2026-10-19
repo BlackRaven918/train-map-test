@@ -1,0 +1,8 @@
+<h2 mat-dialog-title>Exit</h2>
+<mat-dialog-content>
+  Do you want to exit the app?
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-stroked-button mat-dialog-close>No</button>
+  <button mat-flat-button class="confirm-exit" mat-dialog-close cdkFocusInitial (click)="exitApp()">Yes</button>
+</mat-dialog-actions>

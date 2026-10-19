@@ -1,0 +1,29 @@
+:host > div {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40vw;
+  height: 75vh;
+  box-sizing: border-box;
+  border: 1px solid var(--mat-sys-outline-variant);
+  padding: 1rem;
+  border-radius: 5px;
+  background-color: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+}
+h2 {
+  text-align: center;
+}
+
+button {
+  width: 100%;
+  min-height: 64px;
+  margin: 1rem 0;
+}
+
+.exit-button {
+  --mat-button-filled-container-color: var(--mat-sys-error);
+  --mat-button-filled-label-text-color: var(--mat-sys-on-error);
+  --mat-button-filled-state-layer-color: var(--mat-sys-on-error);
+}

@@ -1,0 +1,48 @@
+<div>
+  <h2>Settings</h2>
+  <form (submit)="$event.preventDefault(); createProject()">
+    <mat-form-field appearance="outline">
+      <mat-label>Project name</mat-label>
+      <input
+        matInput
+        #nameInput
+        id="project-name"
+        name="projectName"
+        type="text"
+        required
+        [value]="projectName()"
+        (input)="projectName.set(nameInput.value)"
+      />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Project folder</mat-label>
+      <input
+        matInput
+        id="project-folder"
+        name="projectFolder"
+        type="text"
+        readonly
+        [value]="projectFolder()"
+        placeholder="No folder selected"
+      />
+    </mat-form-field>
+    <button
+      mat-stroked-button
+      type="button"
+      [disabled]="!folderSelectionAvailable || selectingFolder()"
+      (click)="selectFolder()"
+    >
+      {{ selectingFolder() ? 'Selecting folder…' : 'Select folder' }}
+    </button>
+
+    @if (!folderSelectionAvailable) {
+      <p>Open the desktop app to select a project folder.</p>
+    }
+    @if (folderError()) {
+      <p role="alert">{{ folderError() }}</p>
+    }
+
+    <button mat-flat-button type="submit" [disabled]="!canCreateProject()">Create project</button>
+  </form>
+</div>
