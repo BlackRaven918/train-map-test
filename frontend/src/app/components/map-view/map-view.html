@@ -1,1 +1,26 @@
-<div #mapContainer class="map-container" aria-label="World map"></div>
+<app-menu-bar [mode]="mode()" (modeChange)="setMode($event)" />
+<div class="map-workspace">
+  <div #mapContainer class="map-container" aria-label="World map"
+    [class.edit-mode]="mode() === 'edit'"
+    (pointerdown)="startGesture($event)" (pointermove)="moveGesture($event)"
+    (pointerup)="endGesture()" (pointercancel)="endGesture()"
+    (lostpointercapture)="endGesture()" (contextmenu)="suppressContextMenu($event)"></div>
+
+  @if (mode() === 'edit') {
+    <div class="edit-toolbar" cdkDrag cdkDragBoundary=".map-workspace"
+      role="toolbar" aria-label="Map editing tools">
+      <button mat-button cdkDragHandle class="drag-handle" aria-label="Move editing toolbar"
+        title="Drag to move toolbar">⠿</button>
+      <button mat-button [class.active]="editTool() === 'area'"
+        [attr.aria-pressed]="editTool() === 'area'" (click)="editTool.set('area')">Area select</button>
+      <button mat-button [class.active]="editTool() === 'click'"
+        [attr.aria-pressed]="editTool() === 'click'" (click)="editTool.set('click')">Click</button>
+      <span class="tool-hint">Right drag to pan</span>
+    </div>
+  }
+
+  @if (selection(); as box) {
+    <div class="selection-box" [style.left.px]="box.left" [style.top.px]="box.top"
+      [style.width.px]="box.width" [style.height.px]="box.height"></div>
+  }
+</div>
