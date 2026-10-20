@@ -1,1 +1,22 @@
-<p>menu-bar works!</p>
+<nav aria-label="Project navigation">
+  <button mat-button data-menu-trigger [matMenuTriggerFor]="fileMenu" #fileTrigger="matMenuTrigger"
+    (click)="openMenu(fileTrigger)" (mouseenter)="hoverMenu(fileTrigger)">File</button>
+  <button mat-button data-menu-trigger [matMenuTriggerFor]="modeMenu" #modeTrigger="matMenuTrigger"
+    (click)="openMenu(modeTrigger)" (mouseenter)="hoverMenu(modeTrigger)">Mode</button>
+  <span class="current-mode">{{ mode() === 'move' ? 'Move' : 'Edit' }} mode</span>
+</nav>
+
+<mat-menu #fileMenu="matMenu" [hasBackdrop]="false">
+  <button mat-menu-item (click)="finishMenu()">Save project</button>
+</mat-menu>
+
+<mat-menu #modeMenu="matMenu" [hasBackdrop]="false">
+    <button mat-menu-item role="menuitemradio" [attr.aria-checked]="mode() === 'move'"
+      (click)="mode.set('move'); finishMenu()" [class.selected]="mode() === 'move'">
+      <span class="mode-check" aria-hidden="true">{{ mode() === 'move' ? '✓' : '' }}</span>Move
+    </button>
+    <button mat-menu-item role="menuitemradio" [attr.aria-checked]="mode() === 'edit'"
+      (click)="mode.set('edit'); finishMenu()" [class.selected]="mode() === 'edit'">
+      <span class="mode-check" aria-hidden="true">{{ mode() === 'edit' ? '✓' : '' }}</span>Edit
+    </button>
+</mat-menu>

@@ -1,0 +1,38 @@
+:host {
+  display: block;
+  position: relative;
+  z-index: 1;
+  background: var(--mat-sys-surface);
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+}
+
+nav {
+  display: flex;
+  align-items: center;
+  height: 48px;
+  padding: 0 8px;
+}
+
+nav button {
+  --mat-button-text-container-shape: 0;
+  border-radius: 0;
+  height: 48px;
+}
+
+.current-mode {
+  margin-left: auto;
+  padding: 0 12px;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 13px;
+}
+
+.selected {
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+}
+
+.mode-check {
+  display: inline-block;
+  width: 1em;
+  margin-right: 8px;
+}

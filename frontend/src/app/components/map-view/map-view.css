@@ -1,10 +1,67 @@
 :host {
-  display: block;
+  display: flex;
+  flex-direction: column;
   position: fixed;
   inset: 0;
+}
+
+.map-workspace {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .map-container {
   width: 100%;
   height: 100%;
+}
+
+.edit-mode {
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.edit-toolbar {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  max-width: calc(100% - 64px);
+  padding: 6px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 12px;
+  background: var(--mat-sys-surface);
+  box-shadow: 0 4px 16px #0003;
+}
+
+.drag-handle {
+  cursor: grab;
+  min-width: 36px;
+  touch-action: none;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.active {
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+}
+
+.tool-hint {
+  padding: 0 12px;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 12px;
+}
+
+.selection-box {
+  position: absolute;
+  pointer-events: none;
+  border: 1px solid var(--mat-sys-primary);
+  background: color-mix(in srgb, var(--mat-sys-primary) 15%, transparent);
 }
