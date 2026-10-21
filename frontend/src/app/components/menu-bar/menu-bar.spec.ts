@@ -2,6 +2,8 @@ import { ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testin
 import { OverlayContainer } from '@angular/cdk/overlay';
 import { By } from '@angular/platform-browser';
 import { MatMenuTrigger } from '@angular/material/menu';
+import { MatDialog } from '@angular/material/dialog';
+import { ImportGtfsDialog } from '../import-gtfs-dialog/import-gtfs-dialog';
 
 import { MenuBar } from './menu-bar';
 
@@ -22,6 +24,19 @@ describe('MenuBar', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('opens the GTFS import dialog from the Layer menu', () => {
+    const open = spyOn(TestBed.inject(MatDialog), 'open');
+    const layer = Array.from(fixture.nativeElement.querySelectorAll('nav button'))
+      .find(button => (button as HTMLButtonElement).textContent?.trim() === 'Layer') as HTMLButtonElement;
+    layer.click();
+    fixture.detectChanges();
+    const overlay = TestBed.inject(OverlayContainer).getContainerElement();
+    const item = Array.from(overlay.querySelectorAll('button'))
+      .find(button => button.textContent?.trim() === 'Import GTFS as layer')!;
+    item.click();
+    expect(open).toHaveBeenCalledWith(ImportGtfsDialog, { width: '560px', maxWidth: '95vw' });
   });
 
   it('requires a click before hover can open menus and offers Save project', () => {

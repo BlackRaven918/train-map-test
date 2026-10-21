@@ -3,11 +3,17 @@
     (click)="openMenu(fileTrigger)" (mouseenter)="hoverMenu(fileTrigger)">File</button>
   <button mat-button data-menu-trigger [matMenuTriggerFor]="modeMenu" #modeTrigger="matMenuTrigger"
     (click)="openMenu(modeTrigger)" (mouseenter)="hoverMenu(modeTrigger)">Mode</button>
+  <button mat-button data-menu-trigger [matMenuTriggerFor]="layerMenu" #layerTrigger="matMenuTrigger"
+    (click)="openMenu(layerTrigger)" (mouseenter)="hoverMenu(layerTrigger)">Layer</button>
   <span class="current-mode">{{ mode() === 'move' ? 'Move' : 'Edit' }} mode</span>
 </nav>
 
 <mat-menu #fileMenu="matMenu" [hasBackdrop]="false">
   <button mat-menu-item (click)="finishMenu()">Save project</button>
+</mat-menu>
+
+<mat-menu #layerMenu="matMenu" [hasBackdrop]="false">
+  <button mat-menu-item (click)="importGtfs()">Import GTFS as layer</button>
 </mat-menu>
 
 <mat-menu #modeMenu="matMenu" [hasBackdrop]="false">

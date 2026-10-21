@@ -17,6 +17,18 @@
   height: 100%;
 }
 
+.stops-error {
+  position: absolute;
+  bottom: 36px;
+  left: 16px;
+  z-index: 3;
+  max-width: calc(100% - 64px);
+  padding: 8px 16px;
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+  border-radius: 8px;
+}
+
 .edit-mode {
   cursor: crosshair;
   touch-action: none;

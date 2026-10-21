@@ -1,0 +1,17 @@
+input[type='file'] {
+  display: block;
+  margin: 12px 0;
+  max-width: 100%;
+}
+
+.validation-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.validation-error {
+  color: var(--mat-sys-error);
+  overflow-wrap: anywhere;
+}
