@@ -1,8 +1,15 @@
-import { AfterViewInit, Component, ElementRef, OnDestroy, signal, viewChild } from '@angular/core';
+import { AfterViewInit, Component, DestroyRef, ElementRef, inject, OnDestroy, signal, viewChild } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { catchError, EMPTY, startWith, switchMap } from 'rxjs';
+import { MatDialog } from '@angular/material/dialog';
 import { CdkDrag, CdkDragHandle } from '@angular/cdk/drag-drop';
 import { MatButtonModule } from '@angular/material/button';
-import { getVersion, Map, NavigationControl, setWorkerUrl } from 'maplibre-gl';
+import { GeoJSONSource, getVersion, LngLatBounds, Map, NavigationControl, setWorkerUrl } from 'maplibre-gl';
+import type { FeatureCollection, Point } from 'geojson';
 import { MapMode, MenuBar } from '../menu-bar/menu-bar';
+import { API_URL, Stops } from '../../stops';
+import { StopDetails } from '../stop-details/stop-details';
 
 @Component({
   selector: 'app-map-view',
@@ -13,6 +20,11 @@ import { MapMode, MenuBar } from '../menu-bar/menu-bar';
 export class MapView implements AfterViewInit, OnDestroy {
   private readonly mapContainer = viewChild.required<ElementRef<HTMLDivElement>>('mapContainer');
   private map?: Map;
+  private readonly http = inject(HttpClient);
+  private readonly stops = inject(Stops);
+  private readonly dialog = inject(MatDialog);
+  private readonly destroyRef = inject(DestroyRef);
+  readonly stopsError = signal('');
   readonly mode = signal<MapMode>('move');
   readonly editTool = signal<'area' | 'click'>('area');
   readonly selection = signal<{ left: number; top: number; width: number; height: number } | null>(null);
@@ -29,6 +41,7 @@ export class MapView implements AfterViewInit, OnDestroy {
       style: {
         version: 8,
         sources: {
+          'gtfs-stops': { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
           osm: {
             type: 'raster',
             tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
@@ -37,13 +50,70 @@ export class MapView implements AfterViewInit, OnDestroy {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           }
         },
-        layers: [{ id: 'osm', type: 'raster', source: 'osm' }]
+        layers: [
+          { id: 'osm', type: 'raster', source: 'osm' },
+          { id: 'gtfs-stops', type: 'circle', source: 'gtfs-stops', paint: {
+            'circle-radius': 5, 'circle-color': '#1565c0',
+            'circle-stroke-width': 1.5, 'circle-stroke-color': '#ffffff'
+          } }
+        ]
       },
       attributionControl: { compact: false },
       center: [0, 0],
       zoom: 1
     });
     this.map.addControl(new NavigationControl(), 'top-right');
+    this.map.once('style.load', () => this.loadStops());
+    this.map.on('click', 'gtfs-stops', event => {
+      const id = Number(event.features?.[0]?.properties?.['id']);
+      if (Number.isInteger(id) && id > 0) this.openStop(id);
+    });
+    this.map.on('mouseenter', 'gtfs-stops', () => {
+      if (this.map) this.map.getCanvas().style.cursor = 'pointer';
+    });
+    this.map.on('mouseleave', 'gtfs-stops', () => {
+      if (this.map) this.map.getCanvas().style.cursor = this.mode() === 'edit' ? 'crosshair' : '';
+    });
+  }
+
+  private loadStops(): void {
+    this.stops.imported.pipe(
+      startWith(undefined),
+      switchMap(() => {
+        this.stopsError.set('');
+        return this.http.get<FeatureCollection<Point>>(`${API_URL}/stops`).pipe(
+          catchError(() => {
+            this.stopsError.set('Could not load stops. Check the backend and retry.');
+            return EMPTY;
+          }),
+        );
+      }),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe(points => {
+      (this.map?.getSource('gtfs-stops') as GeoJSONSource)?.setData(points);
+      if (points.features.length) {
+        const bounds = new LngLatBounds();
+        for (const feature of points.features) bounds.extend(feature.geometry.coordinates as [number, number]);
+        this.map?.fitBounds(bounds, { padding: 60, maxZoom: 14, duration: 0 });
+      }
+    });
+  }
+
+  retryStops(): void {
+    this.stops.imported.next();
+  }
+
+  openStop(id: number): void {
+    this.dialog.open(StopDetails, {
+      data: id, width: '400px', maxWidth: '95vw',
+      height: 'calc(100% - var(--app-navbar-height))',
+      position: { right: '0', top: 'var(--app-navbar-height)' },
+      panelClass: 'stop-details-panel',
+      backdropClass: ['cdk-overlay-dark-backdrop', 'stop-details-backdrop'],
+      enterAnimationDuration: 250,
+      exitAnimationDuration: 200,
+      ariaLabel: 'Stop details',
+    });
   }
 
   setMode(mode: MapMode): void {
@@ -72,6 +142,11 @@ export class MapView implements AfterViewInit, OnDestroy {
       return;
     }
     // Left clicks belong to the active edit tool; right drags pan in either tool.
+    if (event.button === 0 && this.map?.getLayer('gtfs-stops')) {
+      const bounds = this.map.getCanvas().getBoundingClientRect();
+      if (this.map.queryRenderedFeatures([event.clientX - bounds.left, event.clientY - bounds.top],
+        { layers: ['gtfs-stops'] }).length) return;
+    }
     if (event.button === 0 && this.editTool() === 'click') {
       return;
     }

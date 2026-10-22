@@ -1,7 +1,36 @@
 @import 'maplibre-gl/dist/maplibre-gl.css';
+:root {
+  --app-navbar-height: 49px;
+}
+
 app-root {
   font-family: sans-serif;
 }
 
 html, body { height: 100%; }
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+
+.stop-details-panel {
+  --mat-dialog-container-shape: 0;
+}
+
+.stop-details-panel .mat-mdc-dialog-inner-container {
+  opacity: 1;
+  transition: none;
+}
+
+.stop-details-panel .mat-mdc-dialog-container .mat-mdc-dialog-surface {
+  transform: translateX(100%);
+}
+
+.stop-details-panel .mdc-dialog--open .mat-mdc-dialog-surface {
+  transform: translateX(0);
+}
+
+.stop-details-panel .mdc-dialog--closing .mat-mdc-dialog-surface {
+  transform: translateX(100%);
+}
+
+.stop-details-backdrop {
+  top: var(--app-navbar-height);
+}

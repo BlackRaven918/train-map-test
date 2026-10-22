@@ -1,0 +1,34 @@
+<h2 mat-dialog-title>Import GTFS as layer</h2>
+<mat-dialog-content [attr.aria-busy]="validating()">
+  <p>Choose a GTFS ZIP to validate and import its stops into the map.</p>
+  <label for="gtfs-file">GTFS ZIP file@if (maxUploadSize() !== null) { (maximum {{ maxUploadSizeMiB() }} MiB)}</label>
+  <input id="gtfs-file" type="file" accept=".zip,application/zip"
+    [disabled]="validating()" (change)="selectFile($event)">
+  <div aria-live="polite" role="status">
+    @if (validating()) {
+      <div class="validation-progress">
+        <mat-spinner diameter="32" aria-label="Validating GTFS ZIP"></mat-spinner>
+        <span>Uploading and importing GTFS…</span>
+      </div>
+    }
+    @if (result(); as result) {
+      <p [class.validation-error]="!result.valid">
+        {{ result.valid ? 'Imported ' + result.stop_count + ' stops.' : 'GTFS import failed.' }}
+      </p>
+      @if (result.errors.length) {
+        <ul class="validation-error">
+          @for (message of result.errors; track $index) {
+            <li>{{ message }}</li>
+          }
+        </ul>
+      }
+    }
+    @if (error()) {
+      <p class="validation-error">{{ error() }}</p>
+    }
+  </div>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close [disabled]="validating()">Close</button>
+  <button mat-flat-button [disabled]="!file() || validating() || maxUploadSize() === null" (click)="validate()">Import ZIP</button>
+</mat-dialog-actions>

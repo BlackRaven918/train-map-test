@@ -2,6 +2,8 @@ import { Component, ElementRef, HostListener, inject, model } from '@angular/cor
 import { DOCUMENT } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
+import { MatDialog } from '@angular/material/dialog';
+import { ImportGtfsDialog } from '../import-gtfs-dialog/import-gtfs-dialog';
 
 export type MapMode = 'move' | 'edit';
 
@@ -15,7 +17,13 @@ export class MenuBar {
   readonly mode = model<MapMode>('move');
   private readonly element = inject(ElementRef<HTMLElement>);
   private readonly document = inject(DOCUMENT);
+  private readonly dialog = inject(MatDialog);
   private activeTrigger?: MatMenuTrigger;
+
+  importGtfs(): void {
+    this.finishMenu();
+    this.dialog.open(ImportGtfsDialog, { width: '560px', maxWidth: '95vw' });
+  }
 
   openMenu(trigger: MatMenuTrigger): void {
     if (this.activeTrigger !== trigger) {

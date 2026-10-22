@@ -1,0 +1,26 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+mat-dialog-content {
+  flex: 1;
+  max-height: none;
+}
+
+dt {
+  margin-top: 16px;
+  font-weight: 600;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+dd {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.source {
+  overflow-wrap: anywhere;
+}

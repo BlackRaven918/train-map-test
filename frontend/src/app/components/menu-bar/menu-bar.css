@@ -9,7 +9,7 @@
 nav {
   display: flex;
   align-items: center;
-  height: 48px;
+  height: calc(var(--app-navbar-height) - 1px);
   padding: 0 8px;
 }
 

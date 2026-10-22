@@ -1,0 +1,22 @@
+<h2 mat-dialog-title>{{ details()?.metadata?.['stop_name'] || 'Stop details' }}</h2>
+<mat-dialog-content [attr.aria-busy]="loading()">
+  @if (loading()) {
+    <mat-spinner diameter="32" aria-label="Loading stop details" />
+  }
+  @if (error()) {
+    <p role="alert">{{ error() }}</p>
+    <button mat-button (click)="load()">Retry</button>
+  }
+  @if (details(); as stop) {
+    <p class="source">Source: {{ stop.filename }}</p>
+    <dl>
+      @for (field of fields(); track field[0]) {
+        <dt>{{ field[0] }}</dt>
+        <dd>{{ field[1] || '—' }}</dd>
+      }
+    </dl>
+  }
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>Close</button>
+</mat-dialog-actions>

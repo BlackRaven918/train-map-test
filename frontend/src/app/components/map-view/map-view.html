@@ -1,5 +1,10 @@
 <app-menu-bar [mode]="mode()" (modeChange)="setMode($event)" />
 <div class="map-workspace">
+  @if (stopsError()) {
+    <div class="stops-error" role="alert">{{ stopsError() }}
+      <button mat-button (click)="retryStops()">Retry</button>
+    </div>
+  }
   <div #mapContainer class="map-container" aria-label="World map"
     [class.edit-mode]="mode() === 'edit'"
     (pointerdown)="startGesture($event)" (pointermove)="moveGesture($event)"

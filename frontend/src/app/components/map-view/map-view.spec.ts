@@ -1,5 +1,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { getWorkerUrl, Map } from 'maplibre-gl';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { MatDialog } from '@angular/material/dialog';
+import { OverlayContainer } from '@angular/cdk/overlay';
+import { firstValueFrom } from 'rxjs';
+import { API_URL, Stops } from '../../stops';
 
 import { MapView } from './map-view';
 
@@ -11,13 +17,76 @@ describe('MapView', () => {
   beforeEach(async () => {
     addControl = spyOn(Map.prototype, 'addControl').and.callThrough();
     await TestBed.configureTestingModule({
-      imports: [MapView]
+      imports: [MapView],
+      providers: [provideHttpClient(), provideHttpClientTesting()]
     })
     .compileComponents();
 
     fixture = TestBed.createComponent(MapView);
     component = fixture.componentInstance;
     fixture.detectChanges();
+    const map = addControl.calls.mostRecent().object as Map;
+    await map.once('style.load');
+    TestBed.inject(HttpTestingController).expectOne(`${API_URL}/stops`)
+      .flush({ type: 'FeatureCollection', features: [] });
+  });
+
+  afterEach(() => {
+    TestBed.inject(MatDialog).closeAll();
+    TestBed.inject(HttpTestingController).verify();
+  });
+
+  it('reloads stop dots after import and fetches metadata when a dot is clicked', async () => {
+    const map = addControl.calls.mostRecent().object as Map;
+    const setData = spyOn(map.getSource('gtfs-stops') as import('maplibre-gl').GeoJSONSource, 'setData');
+    const fitBounds = spyOn(map, 'fitBounds');
+    TestBed.inject(Stops).imported.next();
+    const points = { type: 'FeatureCollection', features: [
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [4.3, 50.8] }, properties: { id: 7 } }
+    ] };
+    TestBed.inject(HttpTestingController).expectOne(`${API_URL}/stops`).flush(points);
+    expect(setData).toHaveBeenCalledWith(points as GeoJSON.FeatureCollection<GeoJSON.Point>);
+    expect(fitBounds).toHaveBeenCalled();
+    expect(map.getLayer('gtfs-stops')?.type).toBe('circle');
+
+    spyOn(map, 'queryRenderedFeatures').and.returnValue([points.features[0]] as unknown as ReturnType<Map['queryRenderedFeatures']>);
+    map.fire('click', { point: map.project([4.3, 50.8]), lngLat: map.getCenter(), originalEvent: new MouseEvent('click') });
+    fixture.detectChanges();
+    const request = TestBed.inject(HttpTestingController).expectOne(`${API_URL}/stops/7`);
+    expect(request.request.method).toBe('GET');
+    request.flush({ id: 7, feed_id: 'feed', filename: 'feed.zip', metadata: {
+      stop_id: 'A', stop_name: 'Station', custom_field: 'Extra metadata'
+    } });
+    const dialogRef = TestBed.inject(MatDialog).openDialogs[0];
+    dialogRef.componentRef?.changeDetectorRef.detectChanges();
+    const overlay = TestBed.inject(OverlayContainer).getContainerElement();
+    expect(overlay.textContent).toContain('Station');
+    expect(overlay.textContent).toContain('Extra metadata');
+    expect(overlay.querySelector('.cdk-overlay-backdrop')).not.toBeNull();
+    expect(overlay.querySelector('.stop-details-panel')).not.toBeNull();
+    const navbar = fixture.nativeElement.querySelector('app-menu-bar').getBoundingClientRect();
+    const panel = overlay.querySelector('.stop-details-panel')!.getBoundingClientRect();
+    const backdrop = overlay.querySelector('.stop-details-backdrop')!.getBoundingClientRect();
+    expect(panel.top).toBe(navbar.bottom);
+    expect(backdrop.top).toBe(navbar.bottom);
+    expect(panel.bottom).toBe(document.documentElement.clientHeight);
+    expect(backdrop.bottom).toBe(document.documentElement.clientHeight);
+    const closed = firstValueFrom(dialogRef.afterClosed());
+    (overlay.querySelector('button[mat-dialog-close]') as HTMLButtonElement).click();
+    await closed;
+    expect(TestBed.inject(MatDialog).openDialogs.length).toBe(0);
+  });
+
+  it('allows retrying a failed stop list request', () => {
+    component.retryStops();
+    TestBed.inject(HttpTestingController).expectOne(`${API_URL}/stops`)
+      .flush('Unavailable', { status: 500, statusText: 'Error' });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('Could not load stops');
+    component.retryStops();
+    TestBed.inject(HttpTestingController).expectOne(`${API_URL}/stops`)
+      .flush({ type: 'FeatureCollection', features: [] });
+    expect(component.stopsError()).toBe('');
   });
 
   it('should create', () => {
@@ -26,9 +95,6 @@ describe('MapView', () => {
 
   it('uses OpenStreetMap raster tiles with visible attribution', async () => {
     const map = addControl.calls.mostRecent().object as Map;
-    if (!map.isStyleLoaded()) {
-      await map.once('style.load');
-    }
     const style = map.getStyle();
 
     expect(style.sources['osm']).toEqual(jasmine.objectContaining({
