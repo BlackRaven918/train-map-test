@@ -1,7 +1,7 @@
 import { AfterViewInit, Component, DestroyRef, ElementRef, inject, OnDestroy, signal, viewChild } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { catchError, EMPTY, startWith, switchMap } from 'rxjs';
+import { catchError, EMPTY, map, merge, startWith, switchMap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { CdkDrag, CdkDragHandle } from '@angular/cdk/drag-drop';
 import { MatButtonModule } from '@angular/material/button';
@@ -53,7 +53,7 @@ export class MapView implements AfterViewInit, OnDestroy {
         layers: [
           { id: 'osm', type: 'raster', source: 'osm' },
           { id: 'gtfs-stops', type: 'circle', source: 'gtfs-stops', paint: {
-            'circle-radius': 5, 'circle-color': '#1565c0',
+            'circle-radius': 5, 'circle-color': ['coalesce', ['get', 'color'], '#1565c0'],
             'circle-stroke-width': 1.5, 'circle-stroke-color': '#ffffff'
           } }
         ]
@@ -77,11 +77,15 @@ export class MapView implements AfterViewInit, OnDestroy {
   }
 
   private loadStops(): void {
-    this.stops.imported.pipe(
-      startWith(undefined),
-      switchMap(() => {
+    merge(
+      this.stops.imported.pipe(map(() => true)),
+      this.stops.layersChanged.pipe(map(() => false)),
+    ).pipe(
+      startWith(true),
+      switchMap(fit => {
         this.stopsError.set('');
         return this.http.get<FeatureCollection<Point>>(`${API_URL}/stops`).pipe(
+          map(points => ({ points, fit })),
           catchError(() => {
             this.stopsError.set('Could not load stops. Check the backend and retry.');
             return EMPTY;
@@ -89,9 +93,9 @@ export class MapView implements AfterViewInit, OnDestroy {
         );
       }),
       takeUntilDestroyed(this.destroyRef),
-    ).subscribe(points => {
+    ).subscribe(({ points, fit }) => {
       (this.map?.getSource('gtfs-stops') as GeoJSONSource)?.setData(points);
-      if (points.features.length) {
+      if (fit && points.features.length) {
         const bounds = new LngLatBounds();
         for (const feature of points.features) bounds.extend(feature.geometry.coordinates as [number, number]);
         this.map?.fitBounds(bounds, { padding: 60, maxZoom: 14, duration: 0 });

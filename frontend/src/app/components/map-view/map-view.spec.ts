@@ -89,6 +89,22 @@ describe('MapView', () => {
     expect(component.stopsError()).toBe('');
   });
 
+  it('refreshes layer changes without changing the map viewport and colors dots by feature', () => {
+    const map = addControl.calls.mostRecent().object as Map;
+    const setData = spyOn(map.getSource('gtfs-stops') as import('maplibre-gl').GeoJSONSource, 'setData');
+    const fitBounds = spyOn(map, 'fitBounds');
+    TestBed.inject(Stops).layersChanged.next();
+    const points = { type: 'FeatureCollection', features: [
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [4.3, 50.8] },
+        properties: { id: 7, feed_id: 'feed', color: '#ff0000' } }
+    ] };
+    TestBed.inject(HttpTestingController).expectOne(`${API_URL}/stops`).flush(points);
+    expect(setData).toHaveBeenCalledWith(points as GeoJSON.FeatureCollection<GeoJSON.Point>);
+    expect(fitBounds).not.toHaveBeenCalled();
+    expect(map.getPaintProperty('gtfs-stops', 'circle-color') as unknown)
+      .toEqual(['coalesce', ['get', 'color'], '#1565c0']);
+  });
+
   it('should create', () => {
     expect(component).toBeTruthy();
   });
