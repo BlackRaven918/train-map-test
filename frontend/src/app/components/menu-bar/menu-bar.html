@@ -7,9 +7,18 @@
     (click)="openMenu(layerTrigger)" (mouseenter)="hoverMenu(layerTrigger)">Layer</button>
   <span class="current-mode">{{ mode() === 'move' ? 'Move' : 'Edit' }} mode</span>
 </nav>
+@if (projects.error()) {
+  <div class="project-feedback" role="alert">{{ projects.error() }}</div>
+}
+@if (projects.message()) {
+  <div class="project-feedback" role="status">{{ projects.message() }}</div>
+}
 
 <mat-menu #fileMenu="matMenu" [hasBackdrop]="false">
-  <button mat-menu-item (click)="finishMenu()">Save project</button>
+  <button mat-menu-item [disabled]="projects.busy()" (click)="fileAction('new')">New</button>
+  <button mat-menu-item [disabled]="projects.busy()" (click)="fileAction('open')">Open</button>
+  <button mat-menu-item [disabled]="projects.busy()" (click)="fileAction('save')">Save</button>
+  <button mat-menu-item [disabled]="projects.busy()" (click)="fileAction('saveAs')">Save As</button>
 </mat-menu>
 
 <mat-menu #layerMenu="matMenu" [hasBackdrop]="false">

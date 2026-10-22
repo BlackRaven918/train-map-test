@@ -6,15 +6,25 @@ from contextlib import contextmanager
 from io import TextIOWrapper
 from pathlib import Path
 from typing import BinaryIO
+from threading import RLock
 from uuid import uuid4
 from zipfile import ZipFile
 
 
 DATABASE_PATH = Path(__file__).resolve().parent.parent / "data" / "gtfs.sqlite3"
+DATABASE_LOCK = RLock()
 
 
 @contextmanager
 def database():
+    # A project switch must wait for ongoing reads/imports to finish.
+    with DATABASE_LOCK:
+        with _database() as connection:
+            yield connection
+
+
+@contextmanager
+def _database():
     DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(DATABASE_PATH)
     connection.row_factory = sqlite3.Row

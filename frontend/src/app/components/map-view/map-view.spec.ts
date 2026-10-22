@@ -6,6 +6,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { OverlayContainer } from '@angular/cdk/overlay';
 import { firstValueFrom } from 'rxjs';
 import { API_URL, Stops } from '../../stops';
+import { Projects } from '../../projects';
 
 import { MapView } from './map-view';
 
@@ -87,6 +88,21 @@ describe('MapView', () => {
     TestBed.inject(HttpTestingController).expectOne(`${API_URL}/stops`)
       .flush({ type: 'FeatureCollection', features: [] });
     expect(component.stopsError()).toBe('');
+  });
+
+  it('restores another project viewport and refreshes its layers', () => {
+    const map = addControl.calls.mostRecent().object as Map;
+    const fitBounds = spyOn(map, 'fitBounds');
+    TestBed.inject(Projects).changed.next({ name: 'Another', path: 'F:\\Another.gtfsv',
+      view: { longitude: 5, latitude: 51, zoom: 8, bearing: 20, pitch: 30 } });
+    TestBed.inject(HttpTestingController).expectOne(`${API_URL}/stops`)
+      .flush({ type: 'FeatureCollection', features: [] });
+    expect(map.getCenter().lng).toBeCloseTo(5);
+    expect(map.getCenter().lat).toBeCloseTo(51);
+    expect(map.getZoom()).toBeCloseTo(8);
+    expect(map.getBearing()).toBeCloseTo(20);
+    expect(map.getPitch()).toBeCloseTo(30);
+    expect(fitBounds).not.toHaveBeenCalled();
   });
 
   it('refreshes layer changes without changing the map viewport and colors dots by feature', () => {

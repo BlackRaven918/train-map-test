@@ -1,6 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { Title } from '@angular/platform-browser';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { API_URL } from '../../stops';
 
 import { ProjectSettings } from './project-settings';
 
@@ -17,7 +20,7 @@ describe('ProjectSettings', () => {
 
     await TestBed.configureTestingModule({
       imports: [ProjectSettings],
-      providers: [provideRouter([])]
+      providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()]
     })
     .compileComponents();
 
@@ -27,6 +30,7 @@ describe('ProjectSettings', () => {
   });
 
   afterEach(() => {
+    TestBed.inject(HttpTestingController).verify();
     if (previousElectronAPI) {
       window.electronAPI = previousElectronAPI;
     } else {
@@ -38,7 +42,7 @@ describe('ProjectSettings', () => {
     expect(component).toBeTruthy();
   });
 
-  it('enables Create project only when both fields are filled and navigates on submit', () => {
+  it('creates the project database before setting the title and navigating', async () => {
     const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
     const setTitle = spyOn(TestBed.inject(Title), 'setTitle');
     const button = fixture.nativeElement.querySelector('button[type="submit"]') as HTMLButtonElement;
@@ -52,9 +56,26 @@ describe('ProjectSettings', () => {
     fixture.detectChanges();
     expect(button.disabled).toBeFalse();
     button.click();
-
+    expect(navigate).not.toHaveBeenCalled();
+    const request = TestBed.inject(HttpTestingController).expectOne(`${API_URL}/project/new`);
+    expect(request.request.body).toEqual({ name: 'My project', folder: 'F:\\projects' });
+    request.flush({ name: 'My project', path: 'F:\\projects\\My project.gtfsv', view: null });
+    await fixture.whenStable();
     expect(navigate).toHaveBeenCalledOnceWith(['/map-view']);
     expect(setTitle).toHaveBeenCalledOnceWith('My project');
+  });
+
+  it('keeps the settings form open if creating the file fails', async () => {
+    const navigate = spyOn(TestBed.inject(Router), 'navigate');
+    component.projectName.set('Existing');
+    component.projectFolder.set('F:\\projects');
+    component.createProject();
+    TestBed.inject(HttpTestingController).expectOne(`${API_URL}/project/new`)
+      .flush({ detail: 'A project with that name already exists.' }, { status: 409, statusText: 'Conflict' });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(navigate).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).toContain('already exists');
   });
 
   it('does not navigate when a field is empty or contains only whitespace', () => {

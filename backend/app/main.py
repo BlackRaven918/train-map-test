@@ -2,6 +2,8 @@ from fastapi import FastAPI, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, StrictBool
 from typing import Literal
+import sqlite3
+from . import projects
 
 from .gtfs_validation import MAX_UPLOAD_SIZE, validate_gtfs
 from .stop_store import delete_layer, import_stops, list_layers, stop_details, stop_points, update_layer
@@ -13,6 +15,60 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["Content-Type"],
 )
+
+
+class ProjectCreate(BaseModel):
+    folder: str
+    name: str
+
+
+class ProjectOpen(BaseModel):
+    path: str
+
+
+class ProjectSave(BaseModel):
+    view: dict | None = None
+
+
+class ProjectSaveAs(ProjectSave):
+    path: str
+    overwrite: StrictBool = False
+
+
+def project_action(action, *args):
+    try:
+        return action(*args)
+    except FileExistsError:
+        raise HTTPException(status_code=409, detail='A project with that name already exists.') from None
+    except (ValueError, sqlite3.DatabaseError):
+        raise HTTPException(status_code=400, detail='Invalid project file, name, or map position. The file may use an unsupported format.') from None
+    except OSError:
+        raise HTTPException(status_code=400, detail='Could not access the project file. Check its location and permissions.') from None
+
+
+@app.get('/project')
+def get_project():
+    return project_action(projects.current_project)
+
+
+@app.post('/project/new')
+def new_project(request: ProjectCreate):
+    return project_action(projects.create_project, request.folder, request.name)
+
+
+@app.post('/project/open')
+def open_project(request: ProjectOpen):
+    return project_action(projects.open_project, request.path)
+
+
+@app.post('/project/save')
+def save_project(request: ProjectSave):
+    return project_action(projects.save_project, request.view)
+
+
+@app.post('/project/save-as')
+def save_project_as(request: ProjectSaveAs):
+    return project_action(projects.save_project_as, request.path, request.view, request.overwrite)
 
 @app.get("/")
 async def root():

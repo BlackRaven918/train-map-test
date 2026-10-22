@@ -43,6 +43,9 @@
       <p role="alert">{{ folderError() }}</p>
     }
 
-    <button mat-flat-button type="submit" [disabled]="!canCreateProject()">Create project</button>
+    @if (projects.error()) {
+      <p role="alert">{{ projects.error() }}</p>
+    }
+    <button mat-flat-button type="submit" [disabled]="!canCreateProject() || projects.busy()">Create project</button>
   </form>
 </div>

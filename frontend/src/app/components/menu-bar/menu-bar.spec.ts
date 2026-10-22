@@ -4,6 +4,9 @@ import { By } from '@angular/platform-browser';
 import { MatMenuTrigger } from '@angular/material/menu';
 import { MatDialog } from '@angular/material/dialog';
 import { ImportGtfsDialog } from '../import-gtfs-dialog/import-gtfs-dialog';
+import { Projects } from '../../projects';
+import { provideHttpClient } from '@angular/common/http';
+import { provideRouter } from '@angular/router';
 
 import { MenuBar } from './menu-bar';
 
@@ -13,7 +16,8 @@ describe('MenuBar', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [MenuBar]
+      imports: [MenuBar],
+      providers: [provideHttpClient(), provideRouter([])],
     })
     .compileComponents();
 
@@ -39,16 +43,25 @@ describe('MenuBar', () => {
     expect(open).toHaveBeenCalledWith(ImportGtfsDialog, { width: '560px', maxWidth: '95vw' });
   });
 
-  it('requires a click before hover can open menus and offers Save project', () => {
+  it('requires a click before hover can open menus and offers file commands', () => {
     const fileButton = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
     fileButton.dispatchEvent(new MouseEvent('mouseenter'));
     fixture.detectChanges();
 
     const overlay = TestBed.inject(OverlayContainer).getContainerElement();
-    expect(overlay.textContent).not.toContain('Save project');
+    expect(overlay.textContent).not.toContain('Save As');
     fileButton.click();
     fixture.detectChanges();
-    expect(overlay.textContent).toContain('Save project');
+    expect(Array.from(overlay.querySelectorAll('button')).map(button => button.textContent?.trim()))
+      .toEqual(['New', 'Open', 'Save', 'Save As']);
+  });
+
+  it('dispatches file commands to the project service', () => {
+    const projects = TestBed.inject(Projects);
+    const commands = [spyOn(projects, 'newProject'), spyOn(projects, 'open'),
+      spyOn(projects, 'save'), spyOn(projects, 'saveAs')];
+    for (const command of ['new', 'open', 'save', 'saveAs'] as const) component.fileAction(command);
+    for (const command of commands) expect(command).toHaveBeenCalledTimes(1);
   });
 
   it('changes modes through the dropdown', () => {
@@ -97,7 +110,8 @@ describe('MenuBar', () => {
     file.click();
     fixture.detectChanges();
     const overlay = TestBed.inject(OverlayContainer).getContainerElement();
-    (overlay.querySelector('button') as HTMLButtonElement).click();
+    spyOn(TestBed.inject(Projects), 'save');
+    (Array.from(overlay.querySelectorAll('button')).find(button => button.textContent?.trim() === 'Save') as HTMLButtonElement).click();
     fixture.detectChanges();
     expect(fileTrigger.menuOpen).toBeFalse();
     mode.dispatchEvent(new MouseEvent('mouseenter'));

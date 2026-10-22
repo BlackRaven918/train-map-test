@@ -3,7 +3,10 @@
   <div>
     <h2>GTFS Visualiser</h2>
     <button mat-flat-button (click)="OpenNewProject()">Create New Project</button>
-    <button mat-stroked-button>Open Saved Project</button>
+    <button mat-stroked-button [disabled]="projects.busy()" (click)="projects.open()">Open Saved Project</button>
+    @if (projects.error()) {
+      <p role="alert">{{ projects.error() }}</p>
+    }
     <button mat-flat-button class="exit-button" (click)="OpenExitDialog()">Exit</button>
   </div>
 </div>

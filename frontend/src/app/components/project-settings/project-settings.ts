@@ -1,6 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
-import { Title } from '@angular/platform-browser';
+import { Projects } from '../../projects';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -12,8 +11,7 @@ import { MatInputModule } from '@angular/material/input';
   styleUrl: './project-settings.css',
 })
 export class ProjectSettings {
-  private readonly router = inject(Router);
-  private readonly title = inject(Title);
+  readonly projects = inject(Projects);
   readonly projectName = signal('');
   readonly projectFolder = signal('');
   readonly canCreateProject = computed(() =>
@@ -25,8 +23,7 @@ export class ProjectSettings {
 
   createProject(): void {
     if (this.canCreateProject()) {
-      this.title.setTitle(this.projectName().trim());
-      void this.router.navigate(['/map-view']);
+      void this.projects.create(this.projectName().trim(), this.projectFolder().trim());
     }
   }
 

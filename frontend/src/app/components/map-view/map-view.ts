@@ -10,6 +10,7 @@ import type { FeatureCollection, Point } from 'geojson';
 import { MapMode, MenuBar } from '../menu-bar/menu-bar';
 import { API_URL, Stops } from '../../stops';
 import { StopDetails } from '../stop-details/stop-details';
+import { Projects } from '../../projects';
 
 @Component({
   selector: 'app-map-view',
@@ -24,6 +25,7 @@ export class MapView implements AfterViewInit, OnDestroy {
   private readonly stops = inject(Stops);
   private readonly dialog = inject(MatDialog);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly projects = inject(Projects);
   readonly stopsError = signal('');
   readonly mode = signal<MapMode>('move');
   readonly editTool = signal<'area' | 'click'>('area');
@@ -31,6 +33,7 @@ export class MapView implements AfterViewInit, OnDestroy {
   private gesture?: { pointerId: number; button: number; startX: number; startY: number; x: number; y: number };
 
   ngAfterViewInit(): void {
+    const view = this.projects.current()?.view;
     setWorkerUrl(new URL(
       `maplibre/maplibre-gl-worker.mjs?v=${getVersion()}`,
       document.baseURI
@@ -59,10 +62,28 @@ export class MapView implements AfterViewInit, OnDestroy {
         ]
       },
       attributionControl: { compact: false },
-      center: [0, 0],
-      zoom: 1
+      center: view ? [view.longitude, view.latitude] : [0, 0],
+      zoom: view?.zoom ?? 1,
+      bearing: view?.bearing ?? 0,
+      pitch: view?.pitch ?? 0,
     });
     this.map.addControl(new NavigationControl(), 'top-right');
+    this.projects.captureView = () => {
+      const center = this.map!.getCenter().wrap();
+      return { longitude: center.lng, latitude: center.lat, zoom: this.map!.getZoom(),
+        bearing: this.map!.getBearing(), pitch: this.map!.getPitch() };
+    };
+    this.projects.changed.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(project => {
+      this.dialog.closeAll();
+      this.setMode('move');
+      const position = project.view;
+      this.map?.jumpTo({
+        center: position ? [position.longitude, position.latitude] : [0, 0],
+        zoom: position?.zoom ?? 1, bearing: position?.bearing ?? 0, pitch: position?.pitch ?? 0,
+      });
+      if (position) this.stops.layersChanged.next();
+      else this.stops.imported.next();
+    });
     this.map.once('style.load', () => this.loadStops());
     this.map.on('click', 'gtfs-stops', event => {
       const id = Number(event.features?.[0]?.properties?.['id']);
@@ -81,7 +102,7 @@ export class MapView implements AfterViewInit, OnDestroy {
       this.stops.imported.pipe(map(() => true)),
       this.stops.layersChanged.pipe(map(() => false)),
     ).pipe(
-      startWith(true),
+      startWith(!this.projects.current()?.view),
       switchMap(fit => {
         this.stopsError.set('');
         return this.http.get<FeatureCollection<Point>>(`${API_URL}/stops`).pipe(
@@ -200,6 +221,7 @@ export class MapView implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.projects.captureView = undefined;
     this.map?.remove();
   }
 }
