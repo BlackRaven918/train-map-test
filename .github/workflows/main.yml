@@ -37,6 +37,38 @@ jobs:
           build-mode: none
 
       - name: Analyze
+        id: analyze
         uses: github/codeql-action/analyze@v4
         with:
           category: "/language:${{ matrix.language }}"
+
+      - name: Fail on CodeQL findings
+        env:
+          SARIF_DIR: ${{ steps.analyze.outputs.sarif-output }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          directory = os.environ.get("SARIF_DIR")
+          if not directory:
+              sys.exit("::error::CodeQL did not return a SARIF directory.")
+
+          files = list(Path(directory).rglob("*.sarif"))
+          if not files:
+              sys.exit("::error::No CodeQL SARIF reports found.")
+
+          findings = 0
+          for file in files:
+              report = json.loads(file.read_text(encoding="utf-8"))
+              for run in report.get("runs", []):
+                  findings += len(run.get("results", []))
+
+          if findings:
+              sys.exit(f"::error::CodeQL detected {findings} finding(s).")
+
+          print("No CodeQL findings detected.")
+          PY
