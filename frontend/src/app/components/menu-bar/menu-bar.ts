@@ -4,6 +4,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { MatDialog } from '@angular/material/dialog';
 import { ImportGtfsDialog } from '../import-gtfs-dialog/import-gtfs-dialog';
+import { LayersDialog } from '../layers-dialog/layers-dialog';
 
 export type MapMode = 'move' | 'edit';
 
@@ -23,6 +24,11 @@ export class MenuBar {
   importGtfs(): void {
     this.finishMenu();
     this.dialog.open(ImportGtfsDialog, { width: '560px', maxWidth: '95vw' });
+  }
+
+  viewLayers(): void {
+    this.finishMenu();
+    this.dialog.open(LayersDialog, { width: '720px', maxWidth: '95vw' });
   }
 
   openMenu(trigger: MatMenuTrigger): void {

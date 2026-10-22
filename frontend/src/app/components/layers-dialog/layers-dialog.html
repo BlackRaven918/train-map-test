@@ -1,0 +1,58 @@
+<h2 mat-dialog-title>Layers</h2>
+<mat-dialog-content>
+  @if (error()) {
+    <p role="alert">{{ error() }}</p>
+    @if (loading() === false && layers().length === 0) {
+      <button mat-button (click)="load()">Retry</button>
+    }
+  }
+  @if (loading()) {
+    <p role="status">Loading layers…</p>
+  } @else {
+    @for (layer of layers(); track layer) {
+      <div class="layer-row">
+        <div class="layer-name">
+          <strong>{{ layer.filename }}</strong>
+          <small>{{ layer.stop_count }} stops</small>
+        </div>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Display type</mat-label>
+          <select matNativeControl [value]="layer.location_type" [disabled]="busy()"
+            [attr.aria-label]="'Display type for ' + layer.filename"
+            (change)="changeLocationType(layer, $event)">
+            <option value="1">Stations</option>
+            <option value="0">Stops / platforms</option>
+            <option value="2">Entrances / exits</option>
+            <option value="3">Generic nodes</option>
+            <option value="4">Boarding areas</option>
+            <option value="all">All types</option>
+          </select>
+        </mat-form-field>
+        <mat-slide-toggle [checked]="layer.visible" [disabled]="busy()"
+          [attr.aria-label]="'Show ' + layer.filename"
+          (change)="update(layer, { visible: $event.checked })">Show</mat-slide-toggle>
+        <input type="color" [value]="layer.color" [disabled]="busy()"
+          [attr.aria-label]="'Dot color for ' + layer.filename" (change)="changeColor(layer, $event)">
+        <button mat-button class="delete" [disabled]="busy()"
+          (click)="pendingDelete.set(layer.id)">Delete</button>
+        @if (pendingDelete() === layer.id) {
+          <div class="delete-confirmation">
+            <span>Delete this layer and all its stops from the database?</span>
+            <button mat-button [disabled]="busy()" (click)="pendingDelete.set(null)">Cancel</button>
+            <button mat-flat-button class="delete" [disabled]="busy()"
+              (click)="deleteLayer(layer)">Delete permanently</button>
+          </div>
+        }
+      </div>
+    } @empty {
+      @if (!error()) {
+        <p>No layers imported yet. Use Layer → Import GTFS as layer to add one.</p>
+      }
+    }
+    <p class="type-hint">Types come from the feed. Missing types are treated as stops / platforms.
+      If no stations appear, try Stops / platforms or All types.</p>
+  }
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close [disabled]="busy()">Close</button>
+</mat-dialog-actions>

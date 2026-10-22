@@ -37,6 +37,13 @@ def database():
                     UNIQUE(feed_id, stop_id)
                 )
             """)
+            columns = {row['name'] for row in connection.execute('PRAGMA table_info(feeds)')}
+            if 'visible' not in columns:
+                connection.execute('ALTER TABLE feeds ADD COLUMN visible INTEGER NOT NULL DEFAULT 1')
+            if 'color' not in columns:
+                connection.execute("ALTER TABLE feeds ADD COLUMN color TEXT NOT NULL DEFAULT '#1565c0'")
+            if 'location_type' not in columns:
+                connection.execute("ALTER TABLE feeds ADD COLUMN location_type TEXT NOT NULL DEFAULT '1'")
             yield connection
     finally:
         connection.close()
@@ -55,7 +62,7 @@ def import_stops(upload: BinaryIO, filename: str) -> dict:
     feed_id = str(uuid4())
     upload.seek(0)
     with database() as connection, ZipFile(upload) as archive:
-        connection.execute("INSERT INTO feeds VALUES (?, ?)", (feed_id, filename))
+        connection.execute("INSERT INTO feeds (id, filename) VALUES (?, ?)", (feed_id, filename))
         with archive.open("stops.txt") as source, TextIOWrapper(
             source, encoding="utf-8-sig", newline=""
         ) as text:
@@ -80,19 +87,47 @@ def import_stops(upload: BinaryIO, filename: str) -> dict:
 def stop_points() -> dict:
     with database() as connection:
         rows = connection.execute(
-            """SELECT id, longitude, latitude FROM stops
-               WHERE longitude IS NOT NULL AND latitude IS NOT NULL
-                 AND json_extract(metadata, '$.stop_desc') = ?""",
-            ("NMBSSNCB  STATION",),
+            """SELECT stops.id, stops.feed_id, longitude, latitude, feeds.color FROM stops
+               JOIN feeds ON feeds.id = stops.feed_id
+               WHERE feeds.visible = 1 AND longitude IS NOT NULL AND latitude IS NOT NULL
+                 AND (feeds.location_type = 'all' OR feeds.location_type =
+                      COALESCE(NULLIF(TRIM(CAST(json_extract(metadata, '$.location_type') AS TEXT)), ''), '0'))""",
         ).fetchall()
     return {
         "type": "FeatureCollection",
         "features": [
             {"type": "Feature", "geometry": {"type": "Point", "coordinates": [row["longitude"], row["latitude"]]},
-             "properties": {"id": row["id"]}}
+             "properties": {"id": row["id"], "feed_id": row["feed_id"], "color": row["color"]}}
             for row in rows
         ],
     }
+
+
+def list_layers() -> list[dict]:
+    with database() as connection:
+        rows = connection.execute("""
+            SELECT feeds.*, COUNT(stops.id) AS stop_count FROM feeds
+            LEFT JOIN stops ON stops.feed_id = feeds.id
+            GROUP BY feeds.id ORDER BY feeds.rowid
+        """).fetchall()
+    return [{**dict(row), 'visible': bool(row['visible'])} for row in rows]
+
+
+def update_layer(feed_id: str, visible: bool | None, color: str | None,
+                 location_type: str | None = None) -> bool:
+    with database() as connection:
+        result = connection.execute("""
+            UPDATE feeds SET visible = COALESCE(?, visible), color = COALESCE(?, color),
+                             location_type = COALESCE(?, location_type)
+            WHERE id = ?
+        """, (visible, color, location_type, feed_id))
+        return result.rowcount > 0
+
+
+def delete_layer(feed_id: str) -> bool:
+    with database() as connection:
+        connection.execute('DELETE FROM stops WHERE feed_id = ?', (feed_id,))
+        return connection.execute('DELETE FROM feeds WHERE id = ?', (feed_id,)).rowcount > 0
 
 
 def stop_details(stop_id: int) -> dict | None:

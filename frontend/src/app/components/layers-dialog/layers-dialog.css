@@ -1,0 +1,22 @@
+.layer-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+}
+
+.layer-name { flex: 1; min-width: 160px; overflow-wrap: anywhere; }
+.layer-name small { display: block; color: var(--mat-sys-on-surface-variant); }
+mat-form-field { width: 190px; }
+.type-hint { font-size: 0.85rem; color: var(--mat-sys-on-surface-variant); }
+input[type='color'] { width: 40px; height: 32px; cursor: pointer; }
+.delete-confirmation { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; width: 100%; }
+.delete-confirmation span { flex: 1; min-width: 180px; }
+[role='alert'] { color: var(--mat-sys-error); }
+.delete {
+  --mat-button-text-label-text-color: var(--mat-sys-error);
+  --mat-button-filled-container-color: var(--mat-sys-error);
+  --mat-button-filled-label-text-color: var(--mat-sys-on-error);
+}
