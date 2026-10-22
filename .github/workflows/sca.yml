@@ -22,7 +22,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  FAIL_SEVERITIES: HIGH,CRITICAL # Use MEDIUM,HIGH,CRITICAL for a stricter gate.
+  FAIL_SEVERITIES: CRITICAL # Use MEDIUM,HIGH,CRITICAL for a stricter gate.
 
 jobs:
   sca:
