@@ -5,6 +5,7 @@ import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { MatDialog } from '@angular/material/dialog';
 import { ImportGtfsDialog } from '../import-gtfs-dialog/import-gtfs-dialog';
 import { LayersDialog } from '../layers-dialog/layers-dialog';
+import { Projects } from '../../projects';
 
 export type MapMode = 'move' | 'edit';
 
@@ -16,6 +17,7 @@ export type MapMode = 'move' | 'edit';
 })
 export class MenuBar {
   readonly mode = model<MapMode>('move');
+  readonly projects = inject(Projects);
   private readonly element = inject(ElementRef<HTMLElement>);
   private readonly document = inject(DOCUMENT);
   private readonly dialog = inject(MatDialog);
@@ -29,6 +31,12 @@ export class MenuBar {
   viewLayers(): void {
     this.finishMenu();
     this.dialog.open(LayersDialog, { width: '720px', maxWidth: '95vw' });
+  }
+
+  fileAction(action: 'new' | 'open' | 'save' | 'saveAs'): void {
+    this.finishMenu();
+    if (action === 'new') void this.projects.newProject();
+    else void this.projects[action]();
   }
 
   openMenu(trigger: MatMenuTrigger): void {

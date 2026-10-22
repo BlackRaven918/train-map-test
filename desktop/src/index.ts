@@ -42,5 +42,34 @@ app.whenReady().then(() => {
     return canceled ? null : filePaths[0] ?? null
   })
 
+  ipcMain.handle('project:open-file', async (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (!win || event.senderFrame !== event.sender.mainFrame ||
+        new URL(event.senderFrame.url).origin !== 'http://localhost:4200') {
+      throw new Error('Project selection is only available in the application window')
+    }
+    const result = await dialog.showOpenDialog(win, {
+      title: 'Open project', properties: ['openFile'],
+      filters: [{ name: 'GTFS Visualiser project', extensions: ['gtfsv'] }]
+    })
+    return result.canceled ? null : result.filePaths[0] ?? null
+  })
+
+  ipcMain.handle('project:save-file', async (event, suggestedName: unknown) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (!win || event.senderFrame !== event.sender.mainFrame ||
+        new URL(event.senderFrame.url).origin !== 'http://localhost:4200' ||
+        typeof suggestedName !== 'string') {
+      throw new Error('Project selection is only available in the application window')
+    }
+    const result = await dialog.showSaveDialog(win, {
+      title: 'Save project as', defaultPath: path.basename(suggestedName),
+      filters: [{ name: 'GTFS Visualiser project', extensions: ['gtfsv'] }],
+      properties: ['showOverwriteConfirmation']
+    })
+    if (result.canceled || !result.filePath) return null
+    return result.filePath
+  })
+
   createWindow()
 })
