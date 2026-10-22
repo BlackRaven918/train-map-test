@@ -40,7 +40,7 @@ def import_gtfs_upload(file: UploadFile):
         try:
             imported = import_stops(file.file, file.filename or "")
         except ValueError as error:
-            return {"valid": False, "errors": "An internal error occurred: {}".format(error)}
+            return {"valid": False, "errors": "An internal error occurred"}
         return {"valid": True, "errors": [], **imported}
     finally:
         file.file.close()
